@@ -1,7 +1,6 @@
 import pytest
 
 from deepproblog.engines import ExactEngine, ApproximateEngine
-from deepproblog.heuristics import geometric_mean
 from deepproblog.model import Model
 from deepproblog.query import Query
 from deepproblog.utils import parse
@@ -15,18 +14,20 @@ equal(X,X).
 0.2 :: multiple_answers(dummy2). 
 """
 
-
 @pytest.fixture(
     params=[
         {
-            "engine_factory": lambda model: ApproximateEngine(model, 2, geometric_mean),
+            "name": "approximate",
+            "engine_factory": lambda model: ApproximateEngine(model, 2, ApproximateEngine.geometric_mean),
             "cache": False,
         },
-        {"engine_factory": lambda model: ExactEngine(model), "cache": False},
-        {"engine_factory": lambda model: ExactEngine(model), "cache": True},
+        {"name": "no_cache", "engine_factory": lambda model: ExactEngine(model), "cache": False},
+        {"name": "cache", "engine_factory": lambda model: ExactEngine(model), "cache": True},
     ]
 )
 def model(request) -> Model:
+    if ApproximateEngine is None and request.param["name"] == "approximate":
+        pytest.skip(reason='ApproximateEngine is not available')
     """Simple fixture creating both the approximate and the exact engine"""
     model = Model(_simple_program, [], load=False)
     engine = request.param["engine_factory"](model)

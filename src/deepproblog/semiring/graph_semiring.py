@@ -82,7 +82,6 @@ class GraphSemiring(Semiring):
     def normalize(self, a, z):
         if self.is_one(z):
             return a
-        # print('normalizing with ', self.one()-float(z))
         return a / z
 
     @staticmethod
@@ -114,10 +113,9 @@ class GraphSemiring(Semiring):
             )
         else:
             if target == 1.0:
-                loss = -torch.log(p) * weight
+                loss = -torch.log(p + eps) * weight
             elif target == 0.0:
-                # print(p)
-                loss = -torch.log(1.0 - p) * weight
+                loss = -torch.log(1.0 - p + eps) * weight
             else:
                 loss = (
                     -(

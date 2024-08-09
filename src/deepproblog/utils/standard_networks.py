@@ -1,6 +1,8 @@
+from typing import Dict, Union
+
 import torch
 import torch.nn as nn
-from typing import Dict, Union
+import torch.utils.model_zoo as model_zoo
 from problog.logic import Term
 
 
@@ -24,22 +26,34 @@ class MLP(nn.Module):
         return x
 
 
-import torch.nn as nn
-import torch.utils.model_zoo as model_zoo
-
 model_urls = {
     "alexnet": "https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth",
 }
 
 
 class DummyNet(nn.Module):
-    def __init__(self, values: Dict[Term, Union[list, torch.Tensor]]):
+    def __init__(self, values: Dict[Union[Term, tuple[Term, ...]], Union[list, torch.Tensor]]):
         super().__init__()
         self.values = values
 
-    def forward(self, x):
-        output = self.values[x]
+    def forward(self, *x: Term):
+        if len(x) == 1:
+            output = self.values[x[0]]
+        else:
+            output = self.values[x]
         return torch.tensor(output, requires_grad=True)
+
+
+class DummyTensorNet(nn.Module):
+    def __init__(self, batching=False):
+        super().__init__()
+        self.batching = batching
+
+    def forward(self, *x: torch.Tensor):
+        if self.batching:
+            return torch.stack([torch.tensor(y, requires_grad=True) for y in x], dim=0)
+        else:
+            return torch.tensor(x, requires_grad=True)
 
 
 class SmallNet(nn.Module):
@@ -64,8 +78,8 @@ class SmallNet(nn.Module):
         )
         self.N = 2304
         if size is not None:
-            input = torch.empty(1, 3, *size)
-            out = self.features(input)
+            inputs = torch.empty(1, 3, *size)
+            out = self.features(inputs)
             self.N = torch.numel(out)
         self.classifier = nn.Sequential(
             nn.Linear(self.N, 100),

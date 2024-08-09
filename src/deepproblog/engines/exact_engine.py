@@ -1,10 +1,9 @@
+from typing import List, Union
+
 import torch
 from numpy.random import choice
-from typing import List, Union
-from deepproblog.engines.engine import Engine
-from deepproblog.network import Network
 from problog.engine import DefaultEngine
-from problog.extern import problog_export
+from problog.extern import problog_export, problog_export_nondet
 from problog.logic import (
     Term,
     AnnotatedDisjunction,
@@ -17,6 +16,9 @@ from problog.logic import (
     list2term,
 )
 from problog.program import SimpleProgram
+
+from deepproblog.engines.engine import Engine
+from deepproblog.network import Network
 
 # EXTERN = '{}_extern_'
 EXTERN = "{}_extern_nocache_"
@@ -83,7 +85,6 @@ def get_det_predicate(net: Network, engine: Engine):
         tensor_name = Term("nn", Term(net.name), arguments)
         # FIXME named tensor outputs for lists
         return wrap_tensor(output, engine.tensor_store, name=tensor_name)
-
 
     return det_predicate
 
@@ -205,6 +206,11 @@ class ExactEngine(Engine):
         signature = ["+term"] * arity_in + ["-term"] * arity_out
         problog_export.database = self.model.solver.program
         problog_export(*signature)(func, funcname=function_name, modname=None)
+
+    def register_foreign_nondet(self, func, function_name, arity_in, arity_out):
+        signature = ["+term"] * arity_in + ["-term"] * arity_out
+        problog_export.database = self.model.solver.program
+        problog_export_nondet(*signature)(func, funcname=function_name, modname=None)
 
     def get_hyperparameters(self) -> dict:
         return {"type": "ExactEngine"}

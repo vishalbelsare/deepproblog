@@ -1,11 +1,12 @@
 from typing import TYPE_CHECKING, Sequence
 
-from deepproblog.query import Query
-from deepproblog.tensor import TensorStore
+import torch
 from problog.formula import LogicFormula
 from problog.logic import Term, Constant
 from problog.program import LogicProgram
-import torch
+
+from deepproblog.query import Query
+from deepproblog.tensor import TensorStore
 
 if TYPE_CHECKING:
     from deepproblog.model import Model
@@ -56,6 +57,20 @@ class Engine(object):
         :return:
         """
         raise NotImplementedError("register_foreign is an abstract method")
+
+    def register_foreign_nondet(
+        self, func: callable, function_name: str, arity_in: int, arity_out: int
+    ):
+        """
+        Makes a Python function available to the grounding engine.
+        :param func: The Python function to be made available.
+        :param function_name: The name of the predicate that will be used to address this function in logic.
+        :param arity_in: The number of input arguments to func
+        :param arity_out The number of return values of func
+        :return:
+        """
+        raise NotImplementedError("register_foreign_nondet is an abstract method")
+
 
     def get_tensor(self, tensor_term: Term):
         if tensor_term.functor == "tensor":

@@ -14,16 +14,18 @@ def get_tensor_function(network: Network):
 
 
 class Network(object):
+    """Wraps a PyTorch neural network for use with DeepProblog"""
+
     def __init__(
-        self,
-        network_module: torch.nn.Module,
-        name: str,
-        optimizer: Optional[torch.optim.Optimizer] = None,
-        scheduler=None,
-        k: Optional[int] = None,
-        batching: bool = False,
+            self,
+            network_module: torch.nn.Module,
+            name: str,
+            optimizer: Optional[torch.optim.Optimizer] = None,
+            scheduler=None,
+            k: Optional[int] = None,
+            batching: bool = False,
     ):
-        """
+        """Create a Network object
 
         :param network_module: The neural network module.
         :param name: The name of the network as used in the neural predicate nn(name, ...)
@@ -31,7 +33,7 @@ class Network(object):
         :param scheduler: An optional learn rate scheduler for the optimizer.
         :param k: If k is set, only the top k results of the neural network will be used.
         :param batching: If batching is true, the inputs will be stacked and evaluated in the network in a batch.
-        Otherwise, they are evaluated one by one.
+                         Otherwise, they are evaluated one by one.
         """
         self.network_module = network_module
         self.name = name
@@ -119,13 +121,17 @@ class Network(object):
         :return:
         """
         if self.batching:
-            batched_inputs: List[torch.Tensor] = [
-                self.function(*e)[0] for e in to_evaluate
-            ]
-            stacked_inputs = torch.stack(batched_inputs)
-            if self.is_cuda:
-                stacked_inputs = stacked_inputs.cuda(device=self.device)
-            evaluated = self.network_module(stacked_inputs)
+            inputs = (self.function(*e) for e in to_evaluate)
+            stacked_inputs = list()
+            for inputs in zip(*inputs):
+                try:
+                    inputs = torch.stack(inputs)
+                    if self.is_cuda:
+                        inputs.cuda(device=self.device)
+                except TypeError:
+                    inputs = list(inputs)
+                stacked_inputs.append(inputs)
+            evaluated = self.network_module(*stacked_inputs)
         else:
             evaluated = [self.network_module(*self.function(*e)) for e in to_evaluate]
         return evaluated
@@ -166,7 +172,6 @@ class Network(object):
             "k": self.k,
         }
         return parameters
-
 
 # class NetworkEvaluation(object):
 #     """
